@@ -1,0 +1,17 @@
+---
+- tags: [role-trivy-systemd]
+  block:
+
+  # template
+  - name: Template unit files
+    loop:
+    - trivy.service.j2
+    - trivy.timer.j2
+    become: true
+    ansible.builtin.template:
+      src: "{{ item }}"
+      dest: "/etc/systemd/system/{{ item.replace('.j2', '') }}"
+      owner: root
+      group: root
+      mode: '0644'
+    notify: systemctl daemon-reload

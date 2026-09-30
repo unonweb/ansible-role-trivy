@@ -1,0 +1,8 @@
+---
+- name: trivy role
+  tags: [role-trivy]
+  block:
+
+  - ansible.builtin.import_tasks: trivy-acl.yml
+  - ansible.builtin.import_tasks: trivy-install-opt.yml
+  - ansible.builtin.import_tasks: trivy-systemd.yml

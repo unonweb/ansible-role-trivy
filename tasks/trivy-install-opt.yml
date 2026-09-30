@@ -1,0 +1,86 @@
+---
+- tags: [role-trivy-install-opt]
+  block:
+
+  # assert
+  - name: Assertions for trivy-install-opt
+    ansible.builtin.assert:
+      that:
+      - trivy_user != None
+      - trivy_install_opt_dir != None
+      - trivy_install_opt_src != None
+      quiet: true
+
+  - when: trivy_install_opt_state == "absent" or trivy_install_opt_state == "reinstall"
+    block:
+
+    # remove
+    - name: Remove {{ trivy_install_opt_dir }}
+      become: true
+      ansible.builtin.file:
+        path: "{{ trivy_install_opt_dir }}"
+        state: absent
+
+  - when: trivy_install_opt_state == "present" or trivy_install_opt_state == "reinstall"
+    block:
+
+    # mkdir tmp
+    - name: Create tmp dir for unarchiving
+      become: true
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: trivy_extract
+      register: __trivy_tmp_dir
+      changed_when: false
+
+    # mkdir
+    - name: Mkdir {{ trivy_install_opt_dir }}
+      become: true
+      ansible.builtin.file:
+        path: "{{ trivy_install_opt_dir }}"
+        state: directory
+        owner: root
+        group: "{{ trivy_user }}"
+        mode: "0755"
+
+    # mkdir
+    - name: Mkdir {{ trivy_install_opt_dir }}/bin
+      become: true
+      ansible.builtin.file:
+        path: "{{ trivy_install_opt_dir }}/bin"
+        state: directory
+        owner: root
+        group: "{{ trivy_user }}"
+        mode: "0755"
+
+    # mkdir cache
+    # must be writable by the trivy user
+    - name: Mkdir {{ trivy_install_opt_dir }}/cache
+      become: true
+      ansible.builtin.file:
+        path: "{{ trivy_install_opt_dir }}/cache" 
+        state: directory
+        owner: "{{ trivy_user }}"
+        group: "{{ trivy_user }}"
+        mode: '0750'
+
+    # unarchive
+    - name: Unarchive binary (from local controller path or remote URL)
+      become: true
+      ansible.builtin.unarchive:
+        src: "{{ trivy_install_opt_src }}"
+        dest: "{{ __trivy_tmp_dir.path }}"
+        remote_src: "{{ trivy_install_opt_src is regex('^(https?|ftp)://') }}"
+        creates: "{{ __trivy_tmp_dir.path }}/trivy"
+
+    # cp
+    - name: Copy binary to {{ trivy_install_opt_dir }}/bin/trivy
+      become: true
+      ansible.builtin.copy:
+        src: "{{ __trivy_tmp_dir.path }}/trivy"
+        dest: "{{ trivy_install_opt_dir }}/bin/trivy"
+        owner: root
+        group: "{{ trivy_user }}"
+        remote_src: true
+        mode: '0750'
+      notify: Clean up Trivy temporary extract directory

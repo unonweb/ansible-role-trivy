@@ -1,0 +1,19 @@
+[Unit]
+Description=Daily Sandboxed Trivy Scan Timer
+Documentation=https://github.com/aquasecurity/trivy
+
+[Timer]
+# Run every day at 03:30 AM
+OnCalendar={{ trivy_systemd_timer_config['OnCalendar'] }}
+
+# Wait a random time (up to 30 mins) after 03:30 AM to prevent resource spikes
+RandomizedDelaySec=1800
+
+# Ensure missed scans (e.g., if host was powered off) run immediately on boot
+Persistent=true
+
+# Explicitly target the trivy-scan service
+Unit=trivy-scan.service
+
+[Install]
+WantedBy=timers.target

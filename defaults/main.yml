@@ -1,0 +1,19 @@
+---
+trivy_user: trivy-scanner
+
+# INSTALL OPT
+# -----------
+trivy_install_opt_state: present # present, absent, reinstall
+trivy_install_opt_src: trivy_0.74.0_Linux-64bit.tar.gz
+# trivy_install_opt_src: "/opt/local_files/trivy_0.58.0_Linux-64bit.tar.gz"
+trivy_install_opt_dir: /opt/trivy
+
+
+trivy_scan_targets: 
+- /var/lib/machines
+
+
+# SYSTEMD
+# -------
+trivy_systemd_timer_config:
+  OnCalendar: "*-*-* 03:30:00"

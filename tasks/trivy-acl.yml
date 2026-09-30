@@ -1,0 +1,62 @@
+---
+- tags: [role-trivy-acl]
+  block:
+
+  # assert
+  - name: Assertions for trivy-acl
+    ansible.builtin.assert:
+      that:
+      - trivy_user != None
+      - trivy_scan_targets is not string
+      - trivy_scan_targets is iterable
+      - trivy_scan_targets | length > 0
+      quiet: true
+
+  # group
+  - name: Create system group {{ trivy_user }}
+    become: true
+    ansible.builtin.group:
+      name: "{{ trivy_user }}"
+      system: true
+      state: present
+
+  - name: Create system user {{ trivy_user }}
+    become: true
+    ansible.builtin.user:
+      name: "{{ trivy_user }}"
+      group: "{{ trivy_user }}"
+      system: true
+      shell: /usr/sbin/nologin
+      create_home: false
+      state: present
+
+  # install acl
+  - name: Ensure ACL dependencies are installed
+    become: true
+    ansible.builtin.package:
+      name: acl
+      state: present
+
+  # acl
+  - name: Grant read and execute ACLs to Trivy user on target container directory
+    loop: "{{ trivy_scan_targets }}"
+    become: true
+    ansible.posix.acl:
+      path: "{{ item }}"
+      entity: "{{ trivy_user }}"
+      etype: user
+      permissions: rx
+      state: present
+      recursive: true
+
+  # acl default
+  - name: Set default ACLs on target container directory for future files
+    loop: "{{ trivy_scan_targets }}"
+    become: true
+    ansible.posix.acl:
+      path: "{{ item }}"
+      entity: "{{ trivy_user }}"
+      etype: user
+      permissions: rx
+      default: true
+      state: present

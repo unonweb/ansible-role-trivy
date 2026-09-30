@@ -1,0 +1,44 @@
+---
+# install from url
+# only if directory does not exist
+# important to prevent downgrades
+
+# assert
+- name: Assertions for apache_sites
+  ansible.builtin.assert:
+    that:
+    - __trivy_github_api_url != None
+    - __trivy_github_asset_ptrn != None
+    - trivy_install_opt_dst != None
+
+# download meta
+- name: Get latest release metadata
+  ansible.builtin.uri:
+    url: "{{ __trivy_github_api_url }}"
+    method: GET
+    return_content: true
+    body_format: json
+    status_code: 200
+  register: __trivy_github_meta
+  changed_when: false
+
+- name: Select corresponding asset
+  ansible.builtin.set_fact:
+    __trivy_gh_asset: "{{ __trivy_github_meta.json.assets | selectattr('name', 'search', __trivy_github_asset_ptrn) | first }}"
+
+# assert
+- name: Ensure a matching asset was found
+  ansible.builtin.assert:
+    that:
+      - __trivy_gh_asset is defined
+      - __trivy_gh_asset.name is defined
+      - __trivy_gh_asset.browser_download_url is defined
+    quiet: true
+
+# download
+- name: Download the latest Trivy package
+  ansible.builtin.get_url:
+    url: "{{ __trivy_gh_asset.browser_download_url }}"
+    dest: "/tmp/{{ __trivy_gh_asset.name }}"
+    mode: "0644"
+    force: true

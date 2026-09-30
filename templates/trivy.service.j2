@@ -1,0 +1,30 @@
+[Unit]
+Description=Sandboxed Trivy Filesystem Scan on Container Directories
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User={{ trivy_user }}
+Group={{ trivy_user }}
+ExecStart={{ trivy_install_opt_dir }}/bin/trivy filesystem --cache-dir {{ trivy_install_opt_dir }}/cache {{ trivy_scan_targets | join(' ') }}
+
+# Route Trivy HOME and cache/TMP DIR to /opt/trivy
+Environment="HOME={{ trivy_install_opt_dir }}"
+Environment="TMPDIR={{ trivy_install_opt_dir }}/cache"
+Environment="TRIVY_CACHE_DIR={{ trivy_install_opt_dir }}/cache"
+
+# Strict Security Hardening
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths={{ trivy_install_opt_dir }}/bin
+ReadOnlyPaths={{ trivy_scan_targets | join(' ') }}
+ReadWritePaths={{ trivy_install_opt_dir }}/cache
+ReadWritePaths=/tmp
+PrivateTmp=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+RestrictNamespaces=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
